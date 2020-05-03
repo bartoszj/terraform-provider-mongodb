@@ -1,10 +1,10 @@
 package main
 
 import (
+	"github.com/bartoszj/terraform-provider-mongodb/mongodb"
 	"github.com/hashicorp/terraform-plugin-sdk/plugin"
-	"github.com/hashicorp/terraform-provider-scaffolding/internal/provider"
 )
 
 func main() {
-	plugin.Serve(&plugin.ServeOpts{ProviderFunc: provider.New})
+	plugin.Serve(&plugin.ServeOpts{ProviderFunc: mongodb.Provider})
 }
