@@ -1,9 +1,12 @@
 package mongodb
 
 import (
+	"bytes"
 	"context"
 	"github.com/bartoszj/terraform-provider-mongodb/mongodb/types"
 	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
+	"strings"
+	"time"
 )
 
 func resourceUser() *schema.Resource {
@@ -12,6 +15,13 @@ func resourceUser() *schema.Resource {
 		Read:   resourceMongoDBUserRead,
 		Update: resourceMongoDBUserUpdate,
 		Delete: resourceMongoDBUserDelete,
+		Exists: resourceMongoDBUserExists,
+		Importer: &schema.ResourceImporter{
+			State: schema.ImportStatePassthrough,
+		},
+		Timeouts: &schema.ResourceTimeout{
+			Default: schema.DefaultTimeout(1 * time.Minute),
+		},
 
 		Schema: map[string]*schema.Schema{
 			"database": &schema.Schema{
@@ -55,36 +65,40 @@ func resourceUser() *schema.Resource {
 func resourceMongoDBUserCreate(d *schema.ResourceData, meta interface{}) error {
 	client := meta.(*config).client
 	database := d.Get("database").(string)
+	username := d.Get("username").(string)
 	db := client.Database(database)
 
 	// Create user
-	var createUserResponse *types.Response
+	var createUserResponse types.Response
 	createUserRequest := createUserRequestFromResourceData(d)
-	if err := db.RunCommand(context.Background(), createUserRequest).Decode(&createUserResponse); err != nil {
+	ctx, _ := context.WithTimeout(context.Background(), d.Timeout(schema.TimeoutCreate))
+	if err := db.RunCommand(ctx, createUserRequest).Decode(&createUserResponse); err != nil {
 		return err
 	}
 
-	// Read data
-	var usersInfoResponse *types.UsersInfoResponse
-	userInfoRequest := userInfoRequestFromResourceData(d)
-	if err := db.RunCommand(context.Background(), userInfoRequest).Decode(&usersInfoResponse); err != nil {
-		return err
-	}
+	var id bytes.Buffer
+	id.WriteString(database)
+	id.WriteString(".")
+	id.WriteString(username)
 
-	d.SetId(*usersInfoResponse.UserInfos[0].Id)
+	d.SetId(id.String())
 
 	return resourceMongoDBUserRead(d, meta)
 }
 
 func resourceMongoDBUserRead(d *schema.ResourceData, meta interface{}) error {
+	var ids = strings.Split(d.Id(), ".")
+	database := ids[0]
+	username := ids[1]
+
 	client := meta.(*config).client
-	database := d.Get("database").(string)
 	db := client.Database(database)
 
 	// Read data
-	var usersInfoResponse *types.UsersInfoResponse
-	userInfoRequest := userInfoRequestFromResourceData(d)
-	if err := db.RunCommand(context.Background(), userInfoRequest).Decode(&usersInfoResponse); err != nil {
+	var usersInfoResponse types.UsersInfoResponse
+	userInfoRequest := userInfoRequestFromResourceData(username)
+	ctx, _ := context.WithTimeout(context.Background(), d.Timeout(schema.TimeoutRead))
+	if err := db.RunCommand(ctx, userInfoRequest).Decode(&usersInfoResponse); err != nil {
 		return err
 	}
 
@@ -100,6 +114,18 @@ func resourceMongoDBUserRead(d *schema.ResourceData, meta interface{}) error {
 }
 
 func resourceMongoDBUserUpdate(d *schema.ResourceData, meta interface{}) error {
+	client := meta.(*config).client
+	database := d.Get("database").(string)
+	db := client.Database(database)
+
+	// Update user
+	var updateUserResponse types.Response
+	updateUserRequest := updateUserRequestFromResourceData(d)
+	ctx, _ := context.WithTimeout(context.Background(), d.Timeout(schema.TimeoutUpdate))
+	if err := db.RunCommand(ctx, updateUserRequest).Decode(&updateUserResponse); err != nil {
+		return err
+	}
+
 	return resourceMongoDBUserRead(d, meta)
 }
 
@@ -109,13 +135,19 @@ func resourceMongoDBUserDelete(d *schema.ResourceData, meta interface{}) error {
 	db := client.Database(database)
 
 	// Drop user
-	var response *types.Response
+	var response types.Response
 	dropUserRequest := dropUserRequestFromResourceData(d)
-	if err := db.RunCommand(context.Background(), dropUserRequest).Decode(&response); err != nil {
+	ctx, _ := context.WithTimeout(context.Background(), d.Timeout(schema.TimeoutDelete))
+	if err := db.RunCommand(ctx, dropUserRequest).Decode(&response); err != nil {
 		return err
 	}
 
 	return nil
+}
+
+func resourceMongoDBUserExists(d *schema.ResourceData, meta interface{}) (bool, error) {
+	err := resourceMongoDBUserRead(d, meta)
+	return err == nil, nil
 }
 
 func createUserRequestFromResourceData(d *schema.ResourceData) *types.CreateUserRequest {
@@ -128,10 +160,20 @@ func createUserRequestFromResourceData(d *schema.ResourceData) *types.CreateUser
 	return c
 }
 
-func userInfoRequestFromResourceData(d *schema.ResourceData) *types.UserInfoRequest {
+func userInfoRequestFromResourceData(username string) *types.UserInfoRequest {
 	u := &types.UserInfoRequest{
-		User: d.Get("username").(string),
+		User: username,
 	}
+	return u
+}
+
+func updateUserRequestFromResourceData(d *schema.ResourceData) *types.UpdateUserRequest {
+	u := &types.UpdateUserRequest{
+		User:     d.Get("username").(string),
+		Password: d.Get("password").(string),
+		Roles:    getMongoDBUserRoles(d.Get("role").(*schema.Set), d.Get("database").(string)),
+	}
+
 	return u
 }
 
