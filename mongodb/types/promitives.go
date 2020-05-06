@@ -5,7 +5,7 @@ type UserInfo struct {
 	Id       *string `bson:"_id"`
 	User     *string `bson:"user"`
 	Database *string `bson:"db"`
-	Roles    []*Role `bson:"roles"`
+	Roles    []Role  `bson:"roles"`
 }
 
 type Role struct {

@@ -41,7 +41,7 @@ func resourceUser() *schema.Resource {
 				Sensitive: true,
 			},
 			"role": &schema.Schema{
-				Type:     schema.TypeSet,
+				Type:     schema.TypeList,
 				Required: false,
 				ForceNew: false,
 				Optional: true,
@@ -108,6 +108,8 @@ func resourceMongoDBUserRead(d *schema.ResourceData, meta interface{}) error {
 		user := usersInfoResponse.UserInfos[0]
 		d.Set("database", *user.Database)
 		d.Set("username", *user.User)
+
+		d.Set("role", flattenUserRoles(d, user.Roles))
 	}
 
 	return nil
@@ -154,7 +156,7 @@ func createUserRequestFromResourceData(d *schema.ResourceData) *types.CreateUser
 	c := &types.CreateUserRequest{
 		User:     d.Get("username").(string),
 		Password: d.Get("password").(string),
-		Roles:    getMongoDBUserRoles(d.Get("role").(*schema.Set), d.Get("database").(string)),
+		Roles:    getMongoDBUserRoles(d.Get("role").([]interface{}), d.Get("database").(string)),
 	}
 
 	return c
@@ -171,7 +173,7 @@ func updateUserRequestFromResourceData(d *schema.ResourceData) *types.UpdateUser
 	u := &types.UpdateUserRequest{
 		User:     d.Get("username").(string),
 		Password: d.Get("password").(string),
-		Roles:    getMongoDBUserRoles(d.Get("role").(*schema.Set), d.Get("database").(string)),
+		Roles:    getMongoDBUserRoles(d.Get("role").([]interface{}), d.Get("database").(string)),
 	}
 
 	return u
@@ -184,21 +186,44 @@ func dropUserRequestFromResourceData(d *schema.ResourceData) *types.DropUserRequ
 	return dr
 }
 
-func getMongoDBUserRoles(roles *schema.Set, defaultDatabase string) []*types.Role {
-	r := make([]*types.Role, roles.Len())
+func getMongoDBUserRoles(roles []interface{}, defaultDatabase string) []types.Role {
+	r := make([]types.Role, len(roles))
 
-	for i, role := range roles.List() {
+	for i, role := range roles {
 		rm := role.(map[string]interface{})
 		roleName := rm["name"].(string)
 		database := rm["database"].(string)
 		if len(database) == 0 {
 			database = defaultDatabase
 		}
-		b := &types.Role{
+		r[i] = types.Role{
 			Role:     roleName,
 			Database: database,
 		}
-		r[i] = b
 	}
 	return r
+}
+
+func flattenUserRoles(d *schema.ResourceData, in []types.Role) []interface{} {
+	if in == nil {
+		return []interface{}{}
+	}
+
+	dr := d.Get("role").([]interface{})
+
+	m := make([]interface{}, len(in))
+	for i, r := range in {
+		d := make(map[string]string)
+		d["name"] = r.Role
+		d["database"] = r.Database
+
+		// Cleanup database if the value was not provided by the user
+		role := dr[i].(map[string]interface{})
+		if role["name"] == r.Role && role["database"] == "" {
+			d["database"] = ""
+		}
+
+		m[i] = d
+	}
+	return m
 }

@@ -2,9 +2,9 @@ package types
 
 // Requests
 type CreateUserRequest struct {
-	User     string  `bson:"createUser"`
-	Password string  `bson:"pwd"`
-	Roles    []*Role `bson:"roles"`
+	User     string `bson:"createUser"`
+	Password string `bson:"pwd"`
+	Roles    []Role `bson:"roles"`
 }
 
 type UserInfoRequest struct {
@@ -12,9 +12,9 @@ type UserInfoRequest struct {
 }
 
 type UpdateUserRequest struct {
-	User     string  `bson:"updateUser"`
-	Password string  `bson:"pwd"`
-	Roles    []*Role `bson:"roles"`
+	User     string `bson:"updateUser"`
+	Password string `bson:"pwd"`
+	Roles    []Role `bson:"roles"`
 }
 
 type DropUserRequest struct {

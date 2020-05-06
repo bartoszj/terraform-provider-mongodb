@@ -7,5 +7,5 @@ type Response struct {
 
 type UsersInfoResponse struct {
 	Response
-	UserInfos []*UserInfo `bson:"users"`
+	UserInfos []UserInfo `bson:"users"`
 }
