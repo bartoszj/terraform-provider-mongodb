@@ -19,14 +19,14 @@ func Provider() terraform.ResourceProvider {
 				Description: "The MongoDB url",
 			},
 			"username": &schema.Schema{
-				Type: schema.TypeString,
-				Optional: true,
+				Type:        schema.TypeString,
+				Optional:    true,
 				DefaultFunc: schema.EnvDefaultFunc("MONGODB_USERNAME", ""),
 				Description: "The MongoDB username",
 			},
 			"password": &schema.Schema{
-				Type: schema.TypeString,
-				Optional: true,
+				Type:        schema.TypeString,
+				Optional:    true,
 				DefaultFunc: schema.EnvDefaultFunc("MONGODB_PASSWORD", ""),
 				Description: "The MongoDB password",
 			},
@@ -59,7 +59,8 @@ func providerConfigure(d *schema.ResourceData) (interface{}, error) {
 		return nil, err
 	}
 
-	ctx, _ := context.WithTimeout(context.Background(), 10*time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
 	err = client.Connect(ctx)
 	if err != nil {
 		return nil, err

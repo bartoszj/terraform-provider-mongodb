@@ -51,6 +51,45 @@ func TestAccMongoDBUser_roles(t *testing.T) {
 	})
 }
 
+func TestAccMongoDBUser_complex(t *testing.T) {
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccMongoDBUserDestroy,
+		Steps: []resource.TestStep{
+			resource.TestStep{
+				Config: testAccMongoDBUserConfig,
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckMongoDBUserExists("mongodb_user.user"),
+					testAccCheckMongoDBUserRoles("mongodb_user.user", []types.Role{}),
+					resource.TestCheckNoResourceAttr("mongodb_user.user", "role"),
+				),
+			},
+			resource.TestStep{
+				Config: testAccMongoDBUserRolesConfig,
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckMongoDBUserExists("mongodb_user.user"),
+					testAccCheckMongoDBUserRoles("mongodb_user.user", testAccMongoDBUserRoles),
+					resource.TestCheckResourceAttr("mongodb_user.user", "role.0.name", "readWrite"),
+					resource.TestCheckResourceAttr("mongodb_user.user", "role.0.database", ""),
+					resource.TestCheckResourceAttr("mongodb_user.user", "role.1.name", "dbAdmin"),
+					resource.TestCheckResourceAttr("mongodb_user.user", "role.1.database", "testing"),
+					resource.TestCheckResourceAttr("mongodb_user.user", "role.2.name", "read"),
+					resource.TestCheckResourceAttr("mongodb_user.user", "role.2.database", "admin"),
+				),
+			},
+			resource.TestStep{
+				Config: testAccMongoDBUserConfig,
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckMongoDBUserExists("mongodb_user.user"),
+					testAccCheckMongoDBUserRoles("mongodb_user.user", []types.Role{}),
+					resource.TestCheckNoResourceAttr("mongodb_user.user", "role"),
+				),
+			},
+		},
+	})
+}
+
 var testAccMongoDBUserConfig = fmt.Sprintf(`
 resource "mongodb_user" "user" {
 	database = "testing"
@@ -158,7 +197,7 @@ func testAccCheckMongoDBUserRoles(resourceKey string, roles []types.Role) resour
 			if mongoRole.Database != expectedRole.Database {
 				return fmt.Errorf("mongodb database %s doesn't match expected %s", mongoRole.Database, expectedRole.Database)
 			}
- 		}
+		}
 
 		return nil
 	}

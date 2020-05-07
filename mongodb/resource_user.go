@@ -71,7 +71,8 @@ func resourceMongoDBUserCreate(d *schema.ResourceData, meta interface{}) error {
 	// Create user
 	var createUserResponse types.Response
 	createUserRequest := createUserRequestFromResourceData(d)
-	ctx, _ := context.WithTimeout(context.Background(), d.Timeout(schema.TimeoutCreate))
+	ctx, cancel := context.WithTimeout(context.Background(), d.Timeout(schema.TimeoutCreate))
+	defer cancel()
 	if err := db.RunCommand(ctx, createUserRequest).Decode(&createUserResponse); err != nil {
 		return err
 	}
@@ -97,7 +98,8 @@ func resourceMongoDBUserRead(d *schema.ResourceData, meta interface{}) error {
 	// Read data
 	var usersInfoResponse types.UsersInfoResponse
 	userInfoRequest := userInfoRequestFromResourceData(username)
-	ctx, _ := context.WithTimeout(context.Background(), d.Timeout(schema.TimeoutRead))
+	ctx, cancel := context.WithTimeout(context.Background(), d.Timeout(schema.TimeoutRead))
+	defer cancel()
 	if err := db.RunCommand(ctx, userInfoRequest).Decode(&usersInfoResponse); err != nil {
 		return err
 	}
@@ -123,7 +125,8 @@ func resourceMongoDBUserUpdate(d *schema.ResourceData, meta interface{}) error {
 	// Update user
 	var updateUserResponse types.Response
 	updateUserRequest := updateUserRequestFromResourceData(d)
-	ctx, _ := context.WithTimeout(context.Background(), d.Timeout(schema.TimeoutUpdate))
+	ctx, cancel := context.WithTimeout(context.Background(), d.Timeout(schema.TimeoutUpdate))
+	defer cancel()
 	if err := db.RunCommand(ctx, updateUserRequest).Decode(&updateUserResponse); err != nil {
 		return err
 	}
@@ -139,7 +142,8 @@ func resourceMongoDBUserDelete(d *schema.ResourceData, meta interface{}) error {
 	// Drop user
 	var response types.Response
 	dropUserRequest := dropUserRequestFromResourceData(d)
-	ctx, _ := context.WithTimeout(context.Background(), d.Timeout(schema.TimeoutDelete))
+	ctx, cancel := context.WithTimeout(context.Background(), d.Timeout(schema.TimeoutDelete))
+	defer cancel()
 	if err := db.RunCommand(ctx, dropUserRequest).Decode(&response); err != nil {
 		return err
 	}
