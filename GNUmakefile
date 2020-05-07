@@ -48,4 +48,7 @@ test-compile:
 	fi
 	go test -c $(TEST) $(TESTARGS)
 
-.PHONY: build test testacc vet fmt fmtcheck errcheck test-compile
+release:
+	@curl -sL http://git.io/goreleaser | bash
+
+.PHONY: build test testacc vet fmt fmtcheck errcheck test-compile release
