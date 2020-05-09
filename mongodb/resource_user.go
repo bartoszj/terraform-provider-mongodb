@@ -25,20 +25,23 @@ func resourceUser() *schema.Resource {
 
 		Schema: map[string]*schema.Schema{
 			"database": &schema.Schema{
-				Type:     schema.TypeString,
-				Required: true,
-				ForceNew: true,
+				Type:        schema.TypeString,
+				Required:    true,
+				ForceNew:    true,
+				Description: "Database where user will be created",
 			},
 			"username": &schema.Schema{
-				Type:     schema.TypeString,
-				Required: true,
-				ForceNew: true,
+				Type:        schema.TypeString,
+				Required:    true,
+				ForceNew:    true,
+				Description: "MongoDB username",
 			},
 			"password": &schema.Schema{
-				Type:      schema.TypeString,
-				Required:  true,
-				ForceNew:  false,
-				Sensitive: true,
+				Type:        schema.TypeString,
+				Required:    true,
+				ForceNew:    false,
+				Sensitive:   true,
+				Description: "MongoDB user password",
 			},
 			"role": &schema.Schema{
 				Type:     schema.TypeList,
@@ -48,12 +51,14 @@ func resourceUser() *schema.Resource {
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
 						"name": &schema.Schema{
-							Type:     schema.TypeString,
-							Required: true,
+							Type:        schema.TypeString,
+							Required:    true,
+							Description: "Role name",
 						},
 						"database": &schema.Schema{
-							Type:     schema.TypeString,
-							Optional: true,
+							Type:        schema.TypeString,
+							Optional:    true,
+							Description: "Database where role is stored",
 						},
 					},
 				},

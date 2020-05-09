@@ -1,53 +1,82 @@
-Terraform Provider Scaffolding
-==================
+[![Build Status](https://travis-ci.org/bartoszj/terraform-provider-mongodb.svg?branch=master)](https://travis-ci.org/bartoszj/terraform-provider-mongodb)
 
-This repository is a *template* for a [Terraform](https://www.terraform.io) provider. It is intended as a starting point for creating Terraform providers, containing:
-
- - A resource, and a data source (`mongodb/`),
- - Documentation (`website/`),
- - Miscellanious meta files.
- 
-These files contain boilerplate code that you will need to edit to create your own Terraform provider. A full guide to creating Terraform providers can be found at [Writing Custom Providers](https://www.terraform.io/docs/extend/writing-custom-providers.html).
-
-Please see the [GitHub template repository documentation](https://help.github.com/en/github/creating-cloning-and-archiving-repositories/creating-a-repository-from-a-template) for how to create a new repository from this template on GitHub.
+Terraform Provider MongoDB
+==========================
+The MongoDB Terraform Provider
 
 
 Requirements
 ------------
 
 -	[Terraform](https://www.terraform.io/downloads.html) >= 0.12.x
--	[Go](https://golang.org/doc/install) >= 1.12
-
-Building The Provider
----------------------
-
-1. Clone the repository
-1. Enter the repository directory
-1. Build the provider using the Go `install` command: 
-```sh
-$ go install
-```
-
-Adding Dependencies
----------------------
-
-This provider uses [Go modules](https://github.com/golang/go/wiki/Modules).
-Please see the Go documentation for the most up to date information about using Go modules.
-
-To add a new dependency `github.com/author/dependency` to your Terraform provider:
-
-```
-go get github.com/author/dependency
-go mod tidy
-```
-
-Then commit the changes to `go.mod` and `go.sum`.
-
+-	[Go](https://golang.org/doc/install) >= 1.14
 
 Using the provider
-----------------------
+------------------
 
-Fill this in for each provider
+First, install the desired [plugin release](https://github.com/bartoszj/terraform-provider-mongodb/releases) following Terraform's [Third-party plugin docs](https://www.terraform.io/docs/configuration/providers.html#third-party-plugins).
+
+To configure the provider:
+```hcl
+provider "mongodb" {
+    uri = "mongodb://localhost:27017"
+}
+```
+
+Optionally you can configure Username and Password:
+
+```hcl
+provider "mongodb" {
+    uri      = "mongodb://localhost:27017"
+    username = "admin"
+    password  = "admin"
+}
+```
+
+You can use environment variables to set the provider properties instead. The following table shows all the config options, the corresponding environment variables, and their property defaults if you do not set them.
+
+| Provider property   | Env variable       | Default if not set    | Use                         |
+|:--------------------|:-------------------|:----------------------|:----------------------------|
+| uri                 | MONGODB_URL        | not set               | The url of the MongoDB      |
+| username            | MONGODB_USERNAME   | not set               | Username for the admin user |
+| password            | MONGODB_PASSWORD   | not set               | Password for the admin user |
+
+# Resources
+
+## User
+
+```hcl
+resource "mongodb_user" "user" {
+    database = "test-db"
+    username = "user"
+    password = "pass"
+
+    role {
+        name = "readWrite"
+    }
+    role {
+        name     = "dbAdmin"
+        database = "test-db"
+    }
+    role {
+        name     = "read"
+        database = "admin"
+    }
+}
+```
+
+To import a user:
+```
+terraform import mongodb_user.<user_identifier> <database>.<user>
+```
+
+| User property       | Description
+|:--------------------|:---------------------------------------|
+| database            | Database where user will be created    |
+| username            | MongoDB username                       |
+| password            | MongoDB user password                  |
+| role.name           | Role name                              |
+| role.database       | Database where role is stored          |
 
 Developing the Provider
 ---------------------------
